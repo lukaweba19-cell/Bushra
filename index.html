@@ -32,7 +32,7 @@
     .wrap {
       max-width: 920px;
       margin: 0 auto;
-      padding: 36px 18px 80px;
+      padding: calc(28px + env(safe-area-inset-top)) 18px 80px;
     }
     header { text-align: center; margin-bottom: 28px; }
     .kicker {
@@ -107,7 +107,7 @@
     #title {
       font-family: "Cormorant Garamond", serif;
       font-size: clamp(32px, 5vw, 48px);
-      margin: 4px 0 2px;
+      margin: 4px 0 18px;
       line-height: 1;
     }
     #meta { color: rgba(244, 234, 216, 0.6); font-weight: 300; margin-bottom: 18px; }
@@ -162,28 +162,39 @@
     input[type="range"] { accent-color: var(--gold); width: 90px; }
     .list { margin-top: 18px; display: grid; gap: 10px; }
     .track {
-      display: grid;
-      grid-template-columns: 42px 1fr auto;
-      gap: 12px;
+      display: flex;
       align-items: center;
-      padding: 14px 16px;
+      gap: 14px;
+      padding: 16px 18px;
       border-radius: 18px;
       border: 1px solid var(--line);
       background: rgba(255,255,255,0.02);
       cursor: pointer;
       text-align: left;
       width: 100%;
+      color: inherit;
+      font: inherit;
     }
     .track.active { border-color: var(--gold-dim); background: rgba(228, 194, 122, 0.08); }
-    .num { color: var(--gold); font-family: "Cormorant Garamond", serif; font-size: 22px; }
-    .t-title { font-size: 16px; }
-    .t-file { font-size: 12px; color: rgba(244,234,216,0.45); margin-top: 2px; }
-    footer {
-      text-align: center;
-      margin-top: 22px;
-      color: rgba(244,234,216,0.4);
-      font-size: 12px;
+    .num {
+      flex: 0 0 36px;
+      color: var(--gold);
+      font-family: Outfit, system-ui, sans-serif;
+      font-variant-numeric: tabular-nums;
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
     }
+    .t-title {
+      flex: 1;
+      min-width: 0;
+      font-size: 17px;
+      line-height: 1.25;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .play-mark { flex: 0 0 auto; color: var(--gold); font-size: 14px; }
     @media (max-width: 680px) {
       .stage { grid-template-columns: 1fr; }
       .disc { width: 150px; height: 150px; }
@@ -198,7 +209,6 @@
       <div class="kicker">For Bushra</div>
       <h1>Listen</h1>
       <p class="arabic">أحبك يا بشرى</p>
-      <p class="sub">Two recordings from this repo. Tap a title, or let the next one follow.</p>
     </header>
 
     <section class="stage">
@@ -206,7 +216,6 @@
       <div class="now">
         <div class="label" id="state">Ready</div>
         <div id="title">Choose a track</div>
-        <div id="meta">Bushra recordings</div>
         <div class="bar" id="bar" role="slider" aria-label="Seek"><span id="fill"></span></div>
         <div class="times"><span id="cur">0:00</span><span id="dur">0:00</span></div>
         <div class="controls">
@@ -219,7 +228,6 @@
     </section>
 
     <div class="list" id="list"></div>
-    <footer>Files live in this repository. Drop another .mp3 in and add it to tracks in index.html.</footer>
   </div>
 
   <audio id="audio" preload="metadata"></audio>
@@ -232,7 +240,6 @@
     const audio = document.getElementById("audio");
     const disc = document.getElementById("disc");
     const title = document.getElementById("title");
-    const meta = document.getElementById("meta");
     const state = document.getElementById("state");
     const playBtn = document.getElementById("play");
     const fill = document.getElementById("fill");
@@ -254,9 +261,8 @@
         const btn = document.createElement("button");
         btn.className = "track" + (i === index ? " active" : "");
         btn.type = "button";
-        btn.innerHTML = '<span class="num">' + String(i + 1).padStart(2, "0") + '</span><span><div class="t-title"></div><div class="t-file"></div></span><span>▶</span>';
+        btn.innerHTML = '<span class="num">' + String(i + 1).padStart(2, "0") + '</span><span class="t-title"></span><span class="play-mark">▶</span>';
         btn.querySelector(".t-title").textContent = t.title;
-        btn.querySelector(".t-file").textContent = t.file;
         btn.addEventListener("click", () => load(i, true));
         list.appendChild(btn);
       });
@@ -266,7 +272,6 @@
       index = (i + tracks.length) % tracks.length;
       const t = tracks[index];
       title.textContent = t.title;
-      meta.textContent = t.note + " · " + t.file;
       audio.src = encodeURI(t.file);
       renderList();
       if (autoplay) audio.play().catch(() => {});
