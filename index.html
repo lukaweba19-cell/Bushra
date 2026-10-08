@@ -232,10 +232,7 @@
 
   <audio id="audio" preload="metadata"></audio>
   <script>
-    const tracks = [
-      { title: "On the line", file: "On the line.mp3", note: "Recording" },
-      { title: "You are the meaning", file: "You are the meaning.mp3", note: "Recording" }
-    ];
+    let tracks = [];
 
     const audio = document.getElementById("audio");
     const disc = document.getElementById("disc");
@@ -255,6 +252,10 @@
       return m + ":" + String(r).padStart(2, "0");
     }
 
+    function titleFrom(name) {
+      return name.replace(/\.mp3$/i, "");
+    }
+
     function renderList() {
       list.innerHTML = "";
       tracks.forEach((t, i) => {
@@ -269,6 +270,7 @@
     }
 
     function load(i, autoplay) {
+      if (!tracks.length) return;
       index = (i + tracks.length) % tracks.length;
       const t = tracks[index];
       title.textContent = t.title;
@@ -277,7 +279,30 @@
       if (autoplay) audio.play().catch(() => {});
     }
 
+    async function discover() {
+      state.textContent = "Loading";
+      title.textContent = "Finding tracks";
+      const res = await fetch("https://api.github.com/repos/lukaweba19-cell/Bushra/contents/?ref=main", {
+        headers: { Accept: "application/vnd.github+json" }
+      });
+      if (!res.ok) throw new Error("Could not list files");
+      const items = await res.json();
+      tracks = items
+        .filter((f) => f.type === "file" && /\.mp3$/i.test(f.name))
+        .map((f) => ({ title: titleFrom(f.name), file: f.name }))
+        .sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: "base" }));
+      if (!tracks.length) {
+        title.textContent = "No tracks yet";
+        state.textContent = "Empty";
+        list.innerHTML = "";
+        return;
+      }
+      state.textContent = "Ready";
+      load(0, false);
+    }
+
     playBtn.addEventListener("click", () => {
+      if (!tracks.length) return;
       if (!audio.src) load(0, true);
       else if (audio.paused) audio.play();
       else audio.pause();
@@ -299,11 +324,14 @@
     });
     audio.addEventListener("ended", () => load(index + 1, true));
     document.addEventListener("keydown", (e) => {
-      if (e.code === "Space") { e.preventDefault(); playBtn.click(); }
+      if (e.code === "Space" && e.target.tagName !== "INPUT") { e.preventDefault(); playBtn.click(); }
     });
 
     audio.volume = 0.9;
-    load(0, false);
+    discover().catch(() => {
+      title.textContent = "Could not load tracks";
+      state.textContent = "Retry";
+    });
   </script>
 </body>
 </html>
